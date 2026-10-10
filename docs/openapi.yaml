@@ -1,0 +1,146 @@
+openapi: 3.0.3
+info:
+  title: INDXO AI / XMACH Industrial Purchase Portal API
+  version: 1.0.0
+  description: Bounded B2B commerce REST API for industrial consumables, spares, and tools.
+servers:
+  - url: http://localhost:3000/api
+    description: Local Development Server
+paths:
+  /catalog/categories:
+    get:
+      summary: Retrieve industrial category hierarchy
+      responses:
+        '200':
+          description: Category hierarchy tree
+  /catalog/products:
+    get:
+      summary: Search and filter products
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: brand
+          in: query
+          schema: { type: string }
+        - name: machine
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Filtered product listings
+  /catalog/products/{id}:
+    get:
+      summary: Get product details with variants and vendor offers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Product detail object
+  /cart:
+    get:
+      summary: Retrieve user's multi-vendor cart
+      responses:
+        '200':
+          description: Active cart with vendor splits
+  /cart/items:
+    post:
+      summary: Add product variant offer to cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                offerId: { type: string }
+                quantity: { type: integer }
+      responses:
+        '201':
+          description: Item added
+  /cart/items/{id}:
+    patch:
+      summary: Update cart item quantity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Item updated
+    delete:
+      summary: Remove cart item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: Item removed
+  /addresses:
+    get:
+      summary: Get customer billing and delivery address snapshots
+      responses:
+        '200':
+          description: Address lists
+    post:
+      summary: Add new delivery or billing address
+      responses:
+        '201':
+          description: Address created
+  /checkout/validate:
+    post:
+      summary: Revalidate stock, MOQ, freight, and compute intra/inter-state GST
+      responses:
+        '200':
+          description: Tax breakdown and checkout readiness
+  /checkout/order-intent:
+    post:
+      summary: Create idempotent order intent and split vendor fulfilment orders
+      responses:
+        '201':
+          description: Order confirmed with vendor split
+  /orders:
+    get:
+      summary: Retrieve order history for current customer/tenant
+      responses:
+        '200':
+          description: List of customer orders
+  /orders/{id}:
+    get:
+      summary: Retrieve detailed order status, vendor splits, and tracking
+      responses:
+        '200':
+          description: Order details
+  /orders/{id}/cancel:
+    post:
+      summary: Submit cancellation request for eligible order lines
+      responses:
+        '200':
+          description: Cancellation processed or flagged for approval
+  /orders/{id}/returns:
+    post:
+      summary: Request return for damaged or incorrect item
+      responses:
+        '201':
+          description: Return request initiated
+  /vendor/orders:
+    get:
+      summary: Vendor fulfilment queue (scoped to authenticated vendor)
+      responses:
+        '200':
+          description: List of vendor sub-orders
+  /vendor/orders/{id}/status:
+    patch:
+      summary: Update vendor fulfilment status (Accept, Pack, Dispatch, Track)
+      responses:
+        '200':
+          description: Vendor status updated

@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  purchase-postgres:
+    image: postgres:16-alpine
+    container_name: indxo-purchase-postgres
+    environment:
+      POSTGRES_USER: indxo_user
+      POSTGRES_PASSWORD: indxo_password_dev
+      POSTGRES_DB: indxo_purchase_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U indxo_user -d indxo_purchase_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  purchase-redis:
+    image: redis:7-alpine
+    container_name: indxo-purchase-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+
+  purchase-nats:
+    image: nats:2.10-alpine
+    container_name: indxo-purchase-nats
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["--js", "-m", "8222"]
+
+  purchase-api:
+    build:
+      context: ..
+      dockerfile: apps/purchase-api/Dockerfile
+    container_name: indxo-purchase-api
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://indxo_user:indxo_password_dev@purchase-postgres:5432/indxo_purchase_db
+      REDIS_URL: redis://purchase-redis:6379
+      NATS_URL: nats://purchase-nats:4222
+    ports:
+      - "4000:4000"
+    depends_on:
+      purchase-postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:
